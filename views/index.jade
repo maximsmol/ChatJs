@@ -1,0 +1,22 @@
+include includes/mixins.jade
+
+doctype html
+html(lang="en")
+	head
+		+headContent(Chat)
+	body
+		.navbar.navbar-default.navbar-fixed-top(role='navigation')
+			div(class='container-fluid')
+				.navbar-header
+					a.navbar-brand(href='/') Chat
+				ul.nav.navbar-nav
+					li.active
+						a(href='/') Home
+		.container
+			.jumbotron
+				.page-header
+				h1 Welcome to CHAT
+					small Alpha 0.0.0.0.0.0.1
+				a.btn.btn-primary(href='/room/TEST_ROOM') ENTER
+
+		+scripts

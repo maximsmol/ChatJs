@@ -1,0 +1,28 @@
+include includes/mixins.jade
+
+doctype html
+html(lang="en")
+	head
+		+headContent(''+roomId+' | Chat')
+
+		link(href='/styles/room.css', rel='stylesheet')
+	body
+		.navbar.navbar-default.navbar-fixed-top(role='navigation')
+			div(class='container-fluid')
+				.navbar-header
+					a.navbar-brand(href='/') Chat
+				ul.nav.navbar-nav
+					li
+						a(href='/') Home
+		.container.mainContainer
+			.page-header
+				h1= roomId
+			div#msgs
+
+			.input-group.chatInputs
+				input#msgInput(placeholder='Enter a message', type='text')
+				btn#sendBtn.btn.btn-primary Submit
+
+		+scripts
+		script(src='/socket.io/socket.io.js')
+		script(src='/scripts/roomLogic.js')

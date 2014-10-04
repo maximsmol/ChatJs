@@ -1,0 +1,13 @@
+.mainContainer
+{
+	height: 100%;
+	position: relative;
+	padding-bottom: 70px;
+}
+
+.chatInputs
+{
+	bottom: 10px;
+	awidth: 100%;
+	position: fixed;
+}
