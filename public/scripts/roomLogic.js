@@ -2,42 +2,54 @@
 
 (function ()
 {
-	'use strict';
 
-	var socket = io();
-	var msgsElement = document.getElementById('msgs');
-	var sendBtn = document.getElementById('sendBtn');
-	var msgInput = document.getElementById('msgInput');
+'use strict';
 
-	var addMsg = function(msg)
-	{
-		var div = document.createElement('div');
+var socket = io();
+var msgsElement = document.getElementById('msgs');
+var sendBtn = document.getElementById('sendBtn');
+var msgInput = document.getElementById('msgInput');
 
-		var username = document.createElement('strong');
-		username.innerText = msg.username + ': ';
+var addMsg = function(msg)
+{
+	var div = document.createElement('div');
 
-		var date = document.createElement('em');
-		date.innerText = msg.date;
+	div.classList.add('msg');
+	if (msg.toSelf) div.classList.add('toSelf');
 
-		var p = document.createElement('p');
-		div.appendChild(username);
-		div.appendChild(date);
-		div.appendChild(p);
+	var username = document.createElement('strong');
+	username.innerText = msg.username + ': ';
 
-		p.innerHTML = msg.message;
+	var date = document.createElement('em');
+	date.innerText = msg.date;
 
-		msgsElement.appendChild(div);
-	};
+	var p = document.createElement('p');
+	div.appendChild(username);
+	div.appendChild(date);
+	div.appendChild(p);
 
-	sendBtn.addEventListener('click', function()
-	{
-		socket.emit('msg', msgInput.value);
-		msgInput.value = '';
-	});
+	p.innerHTML = msg.message;
 
-	socket.on('msg', function(msgStr)
-	{
-		var msg = JSON.parse(msgStr);
-		addMsg(msg);
-	});
+	msgsElement.appendChild(div);
+};
+
+var sendMsg = function()
+{
+	socket.emit('msg', msgInput.value);
+	msgInput.value = '';
+};
+
+sendBtn.addEventListener('click', sendMsg);
+msgInput.addEventListener('keypress', function(event)
+{
+	if (event.keyCode === 13) sendMsg();
+});
+
+socket.on('msg', function(msgStr)
+{
+	var msg = JSON.parse(msgStr);
+	console.log(msg);
+	addMsg(msg);
+});
+
 })();

@@ -15,7 +15,6 @@ var init = function(dbHandler, server)
 	var io = socketio(server);
 	io.set('authorization', function(data, accept)
 	{
-		console.log('DATA', data);
 		if(data.headers.cookie)
 		{
 	        data.cookie = parseCookie(data.headers.cookie);
@@ -55,16 +54,17 @@ var init = function(dbHandler, server)
 	{
 		var data = socket.client.request;
 
-		dbHandler.getSession(data.sessionId,
-		function(err, session)
+		dbHandler.getSession(data.sessionId, function(err, session)
 		{
-			if (err != null) throw new Error(err);
+			if (err != null)
+			{
+				return;
+			}
 
 			var user = session.user;
-			data.room.addUser(user.username, function(err)
+			data.room.tryAddUser(user._id, socket, function(err)
 			{
 				if (err != null) throw new Error(err);
-
 				socket.on('msg', function(msg)
 				{
 					data.room.msg(msg, user, function(err)
@@ -74,6 +74,28 @@ var init = function(dbHandler, server)
 				});
 			});
 		});
+	});
+	io.on('disconnect', function(socket)
+	{
+		var data = socket.client.request;
+		if (data)
+		{
+			if (data.sessionId)
+			{
+				dbHandler.getSession(data.sessionId, function(err, session)
+				{
+					if (err == null)
+					{
+						session.user.socket = null;
+						dbHandler.updateSessionSocket(data.sessionId, null);
+					}
+				});
+			}
+			if (data.room && data.user)
+			{
+				data.room.removeUser(data.user.username);
+			}
+		}
 	});
 };
 

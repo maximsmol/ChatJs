@@ -5,6 +5,22 @@
 	padding-bottom: 70px;
 }
 
+.msg:first-child
+{
+	border-top: thin solid #000;
+}
+
+.msg
+{
+	border-bottom: thin solid #000;
+	padding: 15px;
+}
+
+.mainContainer .msgs .toSelf
+{
+	background-color: #F5F5F5;
+}
+
 .chatInputs
 {
 	bottom: 10px;
