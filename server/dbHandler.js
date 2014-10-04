@@ -15,15 +15,14 @@ var bcrypt = require('bcrypt');
 
 /*
 User:
-	username: string
+	id_: string
 	password: bcrypt.hashSync(password, salt);
-	salt    : bcrtpy.genSaltSync();
-	socket  : null || socket.io socket;
+	salt    : bcrtpt.genSaltSync();
 */
 
 var DbHandler = function(port, callback)
 {
-	this.rooms = [];
+	this.rooms = {};
 
 	var self = this;
 	MongoClient.connect('mongodb://localhost:'+port+'/chat', function(err, db)
@@ -45,7 +44,7 @@ var DbHandler = function(port, callback)
 DbHandler.prototype.register = function(username, password, callback)
 {
 	var self = this;
-	this.users.findOne({username: username}, function(err, user)
+	this.getUser(username, function(err, user)
 	{
 		if (err != null)
 		{
@@ -73,10 +72,9 @@ DbHandler.prototype.register = function(username, password, callback)
 					callback(err);
 					return;
 				}
-				self.users.insert({username: username,
+				self.users.insert({_id: username,
 								   password: hash,
-								   salt    : salt,
-								   socket  : null},
+								   salt    : salt},
 				function(err)
 				{
 					callback(err);
@@ -93,14 +91,28 @@ DbHandler.prototype.requestCollection = function(collectionName, callback)
 
 DbHandler.prototype.getUser = function(username, callback)
 {
-	this.users.findOne({username: username}, callback);
+	this.users.findOne({_id: username}, callback);
+};
+
+DbHandler.prototype.getSession = function(sessionId, callback)
+{
+	this.sessionsStore.get(sessionId, callback);
+};
+
+DbHandler.verifyPassword = function(user, password, callback)
+{
+	bcrypt.compare(password, user.password, callback);
 };
 
 
 DbHandler.prototype.addRoom = function(room, callback)
 {
 	var r = this.rooms[room.roomId];
-	if (r != null) callback('Room already exists');
+	if (r != null) 
+	{
+		callback('Room already exists');
+		return;
+	}
 
 	this.rooms[room.roomId] = room;
 	callback(null);
@@ -113,15 +125,5 @@ DbHandler.prototype.getRoom = function(roomId, callback)
 	callback(null, room);
 };
 
-
-DbHandler.prototype.getSession = function(sessionId, callback)
-{
-	this.sessionsStore.get(sessionId, callback);
-};
-
-DbHandler.verifyPassword = function(user, password, callback)
-{
-	bcrypt.compare(password, user.password, callback);
-};
 
 module.exports = DbHandler;

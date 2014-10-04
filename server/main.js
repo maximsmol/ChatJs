@@ -217,7 +217,9 @@ app.get('/room/:id', function(req, res)
 		if (dieIfInternalError(err, res)) return;
 		if (room == null)
 		{
-			room = new Room(dbHandler, roomId, function (err) {
+			room = new Room();
+			room.init(dbHandler, roomId, function (err)
+			{
 				if (dieIfInternalError(err, res)) return;
 				dbHandler.addRoom(room, function(err)
 				{
@@ -238,7 +240,7 @@ app.get('/room/:id', function(req, res)
 
 //-----------------------------------------------------------------------------
 
-server.listen(3000, function()
+server.listen(25565, function()
 {
 	console.log('Server ready');
 });

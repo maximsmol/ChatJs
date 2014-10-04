@@ -1,9 +1,17 @@
 'use strict';
 
-var Room = function(dbHandler, roomId, callback)
+var Room = function()
+{
+	this.dbHandler = null;
+	this.roomId    = null;
+	this.users     = null;
+};
+
+Room.prototype.init = function(dbHandler, roomId, callback)
 {
 	this.dbHandler = dbHandler;
 	this.roomId = roomId;
+	this.sockets = {};
 
 	var self = this;
 	dbHandler.requestCollection('room_'+roomId, function(err, collection)
@@ -19,41 +27,75 @@ var Room = function(dbHandler, roomId, callback)
 	});
 };
 
-var sendMsgTo = function(username, msg, callback)
+var createMsg = function(msg, user, toSelf)
 {
-	this.dbHandler.getUser(username, function(err, user)
-	{
-		if (err != null)
-		{
-			callback(err);
-			return;
-		}
-
-		user.socket.emit(msg);
-	});
+	return {
+		username: user._id,
+		date: new Date(),
+		message: msg,
+		toSelf: toSelf
+	};
 };
 
-Room.prototype.msg = function(msg, user, callback)
+Room.prototype.sendMsgTo = function(socket, msg)
 {
-	this.users.find({_id: {$ne: user.username}})
-		.toArray(function(err, usernames)
+	socket.emit('msg', JSON.stringify(msg));
+	return true;
+};
+
+Room.prototype.msg = function(message, user, callback)
+{
+	var self = this;
+	var stop = false;
+
+	var msg = createMsg(message, user, false);
+	if (!this.sendMsgTo(self.sockets[user._id],
+		createMsg(message, user, true), callback)) return;
+
+	this.users.find({_id: {$ne: user._id}})
+		.each(function(err, user)
 	{
+		if (stop) return;
 		if (err != null)
 		{
 			callback(err);
+			stop = true;
 			return;	
 		}
 
-		for (var i = 0; i < usernames.length; i++)
+		if (user == null)
 		{
-			if (!sendMsgTo(usernames[i], msg, callback)) return;
+			stop = true;
+			return;
 		}
+
+		if (!self.sendMsgTo(self.sockets[user._id],
+			msg, callback)) stop = true;
+	});
+	if (stop) return;
+
+	callback(null);
+};
+
+Room.prototype.getUser = function(username, callback)
+{
+	this.users.findOne({_id: username}, function(err, user)
+	{		
+		if (err != null)
+		{
+			callback(err, null);
+			return;
+		}
+
+		callback(null, user);
 	});
 };
 
-Room.prototype.addUser = function(username, callback)
+Room.prototype.addUser = function(username, socket, callback)
 {
-	this.users.insert({_id: username}, function(err)
+	this.sockets[username] = socket;
+	this.users.insert({_id: username},
+		function(err)
 	{		
 		if (err != null)
 		{
@@ -63,6 +105,29 @@ Room.prototype.addUser = function(username, callback)
 		callback(null);
 	});
 };
+
+Room.prototype.tryAddUser = function(username, socket, callback)
+{
+	var self = this;
+	this.sockets[username] = socket; //Should be set regardless of user existing
+	this.getUser(username, function(err, user)
+	{
+		if (err != null)
+		{
+			callback(err);
+			return;
+		}
+
+		if (user != null)
+		{
+			callback(null);
+			return;
+		}
+
+		self.addUser(username, socket, callback);
+	});
+};
+
 
 Room.prototype.removeUser = function(username, callback)
 {
