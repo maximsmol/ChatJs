@@ -14,7 +14,7 @@ Room.prototype.init = function(dbHandler, roomId, callback)
 	this.sockets = {};
 
 	var self = this;
-	dbHandler.requestCollection('room_'+roomId, function(err, collection)
+	dbHandler.requestCollection('room_'+roomId+'_users', function(err, users)
 	{
 		if (err != null)
 		{
@@ -22,16 +22,35 @@ Room.prototype.init = function(dbHandler, roomId, callback)
 			return;
 		}
 
-		self.users = collection;
-		callback(null);
+		self.users = users;
+		dbHandler.requestCollection('room_'+roomId+'_messages', function(err, messages)
+		{
+			if (err != null)
+			{
+				callback(err);
+				return;
+			}
+
+			self.messages = messages;
+			self.messages.ensureIndex({date: 1}, function(err)
+			{
+				if (err != null)
+				{
+					callback(err);
+					return;
+				}
+
+				callback(null);
+			})
+		});
 	});
 };
 
-var createMsg = function(msg, user, toSelf)
+var createMsg = function(msg, date, user, toSelf)
 {
 	return {
 		username: user._id,
-		date: new Date(),
+		date: date,
 		message: msg,
 		toSelf: toSelf
 	};
@@ -43,38 +62,56 @@ Room.prototype.sendMsgTo = function(socket, msg)
 	return true;
 };
 
-Room.prototype.msg = function(message, user, callback)
+Room.prototype.msg = function(message, date, user, callback)
 {
 	var self = this;
-	var stop = false;
 
-	var msg = createMsg(message, user, false);
-	if (!this.sendMsgTo(self.sockets[user._id],
-		createMsg(message, user, true), callback)) return;
-
-	this.users.find({_id: {$ne: user._id}})
-		.each(function(err, user)
+	var msg = createMsg(message, date, user, true);
+	this.messages.insert(
+		{
+			message: msg.message,
+			date: msg.date,
+			username: msg.username
+		},
+	function(err)
 	{
-		if (stop) return;
-		if (err != null)
+		if (err)
 		{
 			callback(err);
-			stop = true;
-			return;	
-		}
-
-		if (user == null)
-		{
-			stop = true;
 			return;
 		}
 
 		if (!self.sendMsgTo(self.sockets[user._id],
-			msg, callback)) stop = true;
-	});
-	if (stop) return;
+		msg, callback)) return;
 
-	callback(null);
+		var stop = false;
+
+		msg.toSelf = false;
+		self.users.find({_id: {$ne: user._id}})
+			.each(function(err, user)
+		{
+			if (stop) return;
+			if (err != null)
+			{
+				callback(err);
+				stop = true;
+				return;	
+			}
+
+			if (user == null)
+			{
+				stop = true;
+				return;
+			}
+
+			var socket = self.sockets[user._id];
+			if (socket == null) return; //User is not logged in
+			if (!self.sendMsgTo(socket, msg, callback)) stop = true;
+		});
+		if (stop) return;
+
+		callback(null);
+	});
 };
 
 Room.prototype.getUser = function(username, callback)

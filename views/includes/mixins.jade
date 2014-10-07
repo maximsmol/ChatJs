@@ -11,3 +11,36 @@ mixin headContent(title)
 mixin scripts
 	script(src='/jquery/dist/jquery.min.js')
 	script(src='/bootstrap/dist/js/bootstrap.min.js')
+
+mixin navbar-inner(content)
+	.navbar.navbar-default.navbar-fixed-top(role='navigation')
+		div(class='container-fluid')
+			if block
+				block
+
+mixin navbar-no-home
+	+navbar-inner
+		.navbar-header
+			a.navbar-brand Chat
+		if block
+			block
+
+mixin navbar
+	+navbar-inner
+		.navbar-header
+				a.navbar-brand(href='/') Chat
+			ul.nav.navbar-nav
+				li
+					a(href='/') Home
+				if block
+					block
+
+mixin userlogin_input(url)
+	form(role='form', action='/'+url, method="post")
+		.form-group
+			input.form-control(type='text', name='username', placeholder='Username')
+		.form-group
+			input.form-control(type='password', name='password', placeholder='Password')
+			button.btn.btn-primary.btn-lg(type='submit') Submit
+			if block
+				block

@@ -5,75 +5,96 @@ var express = require('express');
 var createHttpServer = require('http').Server;
 
 //Express midleware
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-var session = require('express-session');
-var morgan = require('morgan');
-var errorhandler = require('errorhandler');
-var compressor = require('compression');
+var bodyParser = require('body-parser'); //Parse forms
+var cookieParser = require('cookie-parser'); //Required for expression-session
+var session = require('express-session'); //Authorization
+var morgan = require('morgan'); //Logs all requests
+var errorhandler = require('errorhandler'); //Redirect to error page on unhandled errors
+var compressor = require('compression'); //Compress large files
 
 //My
-var serverUtil = require('./util');
-var DbHandler = require('./dbHandler');
-var socketHandler = require('./socketHandler.js');
-var Room = require('./room.js');
+var serverUtil = require('./util'); //Constants
+var DbHandler = require('./dbHandler'); //Database handler
+var socketHandler = require('./socketHandler.js'); //Socket.io connection handler
+var Room = require('./room.js'); //Chat room class
 
 //Globals
-var app = null;
-var server = null;
-var dbHandler = null;
+var app = null; //Express app
+var server = null; //Express app as connect server
+				   //Required for socket.io
+var dbHandler = null; //DbHandler global instance
 
 //-----------------------------------------------------------------------------
 
 //Checks if an error occured and redirects to /internalError
-var dieIfInternalError = function(err, res)
+var dieIfInternalError = function(err, res, callback)
 {
 	if (err != null)
-	{
-		if (serverUtil.debug) console.log('DiedOnInternalError:',err);
+	{ //There is an error
+		if (serverUtil.debugMode) console.log('DiedOnInternalError:', err);
 		res.redirect('/internalError');
-		return true;
+		return;
 	}
-	return false;
+	callback();
 };
 
-//Checks if user is logged in, if not redirects to /login and return false
-var checkLogin = function(req, res)
+//Checks if user is logged in, if not redirects to /login
+var checkLogin = function(req, res, callback)
 {
 	if (req.session.user == null)
-	{
+	{ //Parsed session doesn't contain a serialized user
 		res.redirect('/login');
-		return false;
+		return;
 	}
-	return true;
+	callback();
 };
 
 //Tries to login user, if fails redirects to /login
 var tryLogin = function(req, res, username, password, callback)
 {
+	if (req.session.user != null)
+	{ //Nothing to do
+		callback(null);
+		return;
+	}
+
+	//Try to get user
 	dbHandler.getUser(username, function(err, user)
 	{
-		if (dieIfInternalError(err, res)) return;
-		if (!user)
-		{
-			callback('User doesn\'t exist');
-			return;
-		}
-		DbHandler.verifyPassword(user, password, function(err, equal)
-		{
-			if (!equal)
-			{
-				callback('Password is invalid');
+		dieIfInternalError(err, res,
+		function()
+		{ //No error occured
+			if (!user)
+			{ //No such user found
+				callback('User doesn\'t exist');
 				return;
 			}
+			//User is found
 
-			req.session.regenerate(function(err)
+			//Verify password
+			DbHandler.verifyPassword(user, password, function(err, equal)
 			{
-				if (dieIfInternalError(err, res)) return;
+				dieIfInternalError(err, res,
+				function()
+				{ //No error occured
+					if (!equal)
+					{ //Password hashes are not equal
+						callback('Password is invalid');
+						return;
+					}
 
-				req.session.user = user;
-				callback(null);
-				return;
+					//Password is valid
+					req.session.regenerate(function(err)
+					{ //Login user to express-session
+						dieIfInternalError(err, res,
+						function()
+						{	
+							req.session.user = user; //Set session's user
+							callback(null);
+							return;
+						});
+					});
+				});
 			});
 		});
 	});
@@ -81,9 +102,11 @@ var tryLogin = function(req, res, username, password, callback)
 
 //-----------------------------------------------------------------------------
 
-//Setup db
-dbHandler = new DbHandler(27017, function()
-{
+//Connect to database
+dbHandler = new DbHandler(serverUtil.dbPort,
+function()
+{ //At this point database has successfully setup
+  //Otherwise DbHandler has already thrown an error
 
 //-----------------------------------------------------------------------------
 
@@ -91,42 +114,41 @@ dbHandler = new DbHandler(27017, function()
 app = express();
 server = createHttpServer(app);
 
-//Connect io to server
+//Connect socket.io with express server
 socketHandler.init(dbHandler, server);
 
 //-----------------------------------------------------------------------------
 
-//Set default view engine to jade
+//Render views with jade
 app.set('view engine', 'jade');
 
 //-----------------------------------------------------------------------------
 
-//Handle errors
-if (serverUtil.debug) app.use(errorhandler());
-//Log
+//Log request
 app.use(morgan('dev'));
-//Compressor
+//Handle errors
+if (serverUtil.debugMode) app.use(errorhandler());
+//Compress any large files
 app.use(compressor({threshold: 512}));
 
-//Try serve resources
+//Serve resources
 app.use(express.static('./bower_components/'));
 app.use(express.static('./public/'));
 
+//Parse the body
+app.use(bodyParser.urlencoded({extended: true}));
 //Parse cookies for session
 app.use(cookieParser(serverUtil.secret));
-//Parse session cookie
+//Parse session
 app.use(session(
-			{
-				store: dbHandler.sessionsStore,
-				resave: true,
-				saveUninitialized: true,
-				secret: serverUtil.secret,
-				cookie: {path: '/', httpOnly: false,
-						 secure: false, maxAge: null}
-			}
-		));
-//Finally, parse the body
-app.use(bodyParser.urlencoded({extended: true}));
+				{
+					store: dbHandler.sessionsStore,
+					resave: true,
+					saveUninitialized: true,
+					secret: serverUtil.secret,
+					cookie: {path: '/', httpOnly: false,
+						 	 secure: false, maxAge: null}
+				}));
 
 //-----------------------------------------------------------------------------
 
