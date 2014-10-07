@@ -5,28 +5,19 @@ html(lang="en")
 	head
 		+headContent(Chat)
 	body
-		.navbar.navbar-default.navbar-fixed-top(role='navigation')
-			div(class='container-fluid')
-				.navbar-header
-					span.navbar-brand Chat
-				ul.nav.navbar-nav
-					li
-						a(href='/register') Register
+		+navbar-no-home
+			ul.nav.navbar-nav
+				li
+					a(href='/register') Register
+		
 		.container
 			.jumbotron
 				.page-header
-				h1 Please, login
-					p.lead To continue you have to login
+				h1 Login
+					p.lead If you dont have an account click 
+						a(href='/register') here
 
-				form(role='form', action='/login', method="post")
-					.form-group
-						input.form-control(type='text', name='username', placeholder='Username')
-					.form-group
-						input.form-control(type='password', name='password', placeholder='Password')
-					button.btn.btn-primary.btn-lg(type='submit') Submit
+				+userlogin_input('login')
 					a.btn.btn-default(href='/register') Register
-
-		
-
 
 		+scripts
