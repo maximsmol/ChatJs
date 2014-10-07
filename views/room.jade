@@ -7,21 +7,19 @@ html(lang="en")
 
 		link(href='/styles/room.css', rel='stylesheet')
 	body
-		.navbar.navbar-default.navbar-fixed-top(role='navigation')
-			div(class='container-fluid')
-				.navbar-header
-					a.navbar-brand(href='/') Chat
-				ul.nav.navbar-nav
-					li
-						a(href='/') Home
+		+navbar
+
 		.container.mainContainer
 			.page-header
 				h1= roomId
 			div.msgs#msgs
 
-			.input-group.chatInputs
-				input#msgInput(placeholder='Enter a message', type='text')
-				btn#sendBtn.btn.btn-primary Submit
+		.inputArea
+			.container
+				.input-group.chatInputs
+				input.msgInput#msgInput(placeholder='Enter a message', type='text')
+				div.sendBtnContainer
+					btn.sendBtn#sendBtn.btn.btn-primary Submit
 
 		+scripts
 		script(src='/socket.io/socket.io.js')

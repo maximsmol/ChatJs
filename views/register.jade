@@ -3,17 +3,12 @@ include includes/mixins.jade
 doctype html
 html(lang="en")
 	head
-		+headContent
-
-		title Chat
+		+headContent(Chat)
 	body
-		.navbar.navbar-default.navbar-fixed-top(role='navigation')
-			div(class='container-fluid')
-				.navbar-header
-					span.navbar-brand Chat
-				ul.nav.navbar-nav
-					li
-						a(href='/login') Login
+		+navbar-no-home
+			ul.nav.navbar-nav
+				li
+					a(href='/register') Login
 		.container
 			.jumbotron
 				.page-header
@@ -21,12 +16,7 @@ html(lang="en")
 					p.lead If you already have an account click 
 						a(href='/login') here
 
-				form(role='form', action='/register', method="post")
-					.form-group
-						input.form-control(type='text', name='username', placeholder='Username')
-					.form-group
-						input.form-control(type='password', name='password', placeholder='Password')
-					button.btn.btn-primary.btn-lg(type='submit') Submit
+				+userlogin_input('register')
 					a.btn.btn-default(href='/login') Login
 
 		

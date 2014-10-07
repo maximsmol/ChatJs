@@ -5,13 +5,8 @@ html(lang="en")
 	head
 		+headContent(Chat)
 	body
-		.navbar.navbar-default.navbar-fixed-top(role='navigation')
-			div(class='container-fluid')
-				.navbar-header
-					a.navbar-brand(href='/') Chat
-				ul.nav.navbar-nav
-					li.active
-						a(href='/') Home
+		+navbar
+		
 		.container
 			.jumbotron
 				.page-header
