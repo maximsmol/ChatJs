@@ -10,6 +10,12 @@ var msgsElement = document.getElementById('msgs');
 var sendBtn = document.getElementById('sendBtn');
 var msgInput = document.getElementById('msgInput');
 
+var formatDate = function(date)
+{
+	return date.getDate()+'/'+date.getMonth()+'/'+date.getFullYear()+' '+
+		   date.getHours()+':'+date.getMinutes()+':'+date.getSeconds();
+};
+
 var addMsg = function(msg)
 {
 	var div = document.createElement('div');
@@ -20,13 +26,19 @@ var addMsg = function(msg)
 	var username = document.createElement('strong');
 	username.innerText = msg.username + ': ';
 
-	var date = document.createElement('em');
-	date.innerText = msg.date;
+	var date = document.createElement('div');
+	var dateInner = document.createElement('small');
+	dateInner.className = 'dateElement';
+
+	var dateVal = new Date(0);
+	dateVal.setUTCMilliseconds(parseInt(msg.date));
+	dateInner.innerText = formatDate(dateVal);
+	date.appendChild(dateInner);
 
 	var p = document.createElement('p');
 	div.appendChild(username);
-	div.appendChild(date);
 	div.appendChild(p);
+	div.appendChild(date);
 
 	p.innerHTML = msg.message;
 
@@ -35,8 +47,13 @@ var addMsg = function(msg)
 
 var sendMsg = function()
 {
-	socket.emit('msg', msgInput.value);
+	socket.emit('msg', JSON.stringify({message: msgInput.value, date: new Date().getTime()}));
 	msgInput.value = '';
+};
+
+var scrollToEnd = function()
+{
+	window.scrollTo(0, document.body.scrollHeight);
 };
 
 sendBtn.addEventListener('click', sendMsg);
@@ -48,8 +65,9 @@ msgInput.addEventListener('keypress', function(event)
 socket.on('msg', function(msgStr)
 {
 	var msg = JSON.parse(msgStr);
-	console.log(msg);
+	var shouldScroll = ($(window).scrollTop() + $(window).height() == $(document).height());
 	addMsg(msg);
+	if (shouldScroll) scrollToEnd();
 });
 
 })();

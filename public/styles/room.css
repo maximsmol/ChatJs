@@ -1,6 +1,5 @@
 .mainContainer
 {
-	height: 100%;
 	position: relative;
 	padding-bottom: 70px;
 }
@@ -18,12 +17,48 @@
 
 .mainContainer .msgs .toSelf
 {
-	background-color: #F5F5F5;
+	background-color: #fafafa;
+}
+
+body
+{
+	padding-bottom: 15px;
+}
+
+.dateElement
+{
+	color: #888;
 }
 
 .chatInputs
+{	
+	width: 100%;
+}
+
+.msgInput
+{	
+	width: 93%;
+}
+
+.sendBtn
 {
-	bottom: 10px;
-	awidth: 100%;
+	width: 100%;
+}
+
+.sendBtnContainer
+{
+	display: inline-block;
+	padding-left: 2px;
+	width: 7%;
+}
+
+.inputArea
+{
+	width: 100%;
+	height: 50px;
+
+	bottom: 0;
 	position: fixed;
+
+	background-color: #fff;
 }

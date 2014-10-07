@@ -65,9 +65,18 @@ var init = function(dbHandler, server)
 			data.room.tryAddUser(user._id, socket, function(err)
 			{
 				if (err != null) throw new Error(err);
-				socket.on('msg', function(msg)
+				socket.on('msg', function(msgRaw)
 				{
-					data.room.msg(msg, user, function(err)
+					try
+					{
+						var msg = JSON.parse(msgRaw);
+					}
+					catch(err)
+					{
+						throw new Error(err);
+					}
+
+					data.room.msg(msg.message, msg.date, user, function(err)
 					{
 						if (err != null) throw new Error(err);
 					});
